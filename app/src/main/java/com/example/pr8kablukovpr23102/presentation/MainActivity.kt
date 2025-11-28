@@ -390,8 +390,6 @@ fun CasesScreen(onBack: () -> Unit) {
 
             Spacer(modifier = Modifier.height(6.dp))
             Text(text = "Открытых дел: ${openCases.value}")
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = { /* закрыть дело */ }) { Text("Закрыть дело") }
         }
     }
 }

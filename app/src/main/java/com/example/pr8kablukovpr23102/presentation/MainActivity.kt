@@ -9,42 +9,46 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.wear.compose.material.Button
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.TimeText
 import androidx.wear.tooling.preview.devices.WearDevices
-import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.runtime.*
-import androidx.compose.ui.unit.dp
-import androidx.wear.compose.material.Button
-import androidx.wear.compose.material.TimeText
-import kotlinx.coroutines.launch
 import com.example.pr8kablukovpr23102.R
-import com.example.pr8kablukovpr23102.presentation.theme.Pr8KablukovPr23102Theme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -189,26 +193,35 @@ fun MenuScreen(
 @Composable
 fun ClickerScreen(onBack: () -> Unit) {
     var count by remember { mutableStateOf(0) }
+    val safePadding = WindowInsets.safeDrawing.asPaddingValues()
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        // Кнопка Назад сверху слева
-        Button(
-            onClick = onBack,
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(6.dp)
-                .height(28.dp)
-        ) {
-            Text(text = "Назад")
-        }
-
-        // Основной контент по центру
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(safePadding) // всё внутри видимой области
+    ) {
+        // Центральный контент: кнопка назад + счёт + кнопки управления
         Column(
-            modifier = Modifier.align(Alignment.Center),
+            modifier = Modifier
+                .align(Alignment.Center)
+                .padding(4.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Маленькая компактная кнопка назад, часть центрального интерфейса
+            Button(
+                onClick = onBack,
+                modifier = Modifier
+                    .size(36.dp) // компактный круглый размер
+            ) {
+                Text("←")
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
             Text(text = "Счёт: $count")
+
             Spacer(modifier = Modifier.height(8.dp))
+
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = { if (count > 0) count-- }) { Text("-") }
                 Button(onClick = { count++ }) { Text("+") }
@@ -217,26 +230,37 @@ fun ClickerScreen(onBack: () -> Unit) {
     }
 }
 
-
 @Composable
 fun StopwatchScreen(onBack: () -> Unit) {
-    // Упрощённый UI секундомера — реализацию таймера можно добавить отдельно
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Button(
-            onClick = onBack,
+    val safePadding = WindowInsets.safeDrawing.asPaddingValues()
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(safePadding)
+    ) {
+        Column(
             modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(6.dp)
-                .height(28.dp)
+                .align(Alignment.Center)
+                .padding(4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = "Назад")
-        }
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Button(
+                onClick = onBack,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Text("←")
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
             Text(text = "00:00:00")
+
             Spacer(modifier = Modifier.height(8.dp))
+
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = { /* Start/Pause */ }) { Text("Start") }
-                Button(onClick = { /* Reset with confirmation */ }) { Text("Reset") }
+                Button(onClick = { /* Reset */ }) { Text("Reset") }
             }
         }
     }
@@ -244,19 +268,33 @@ fun StopwatchScreen(onBack: () -> Unit) {
 
 @Composable
 fun CasesScreen(onBack: () -> Unit) {
-    // Экран с количеством открытых дел
     val openCases = remember { mutableStateOf(5) }
-    Box(modifier = Modifier.fillMaxSize()) {
-        Button(onClick = onBack, modifier = Modifier.align(Alignment.TopStart).padding(6.dp).height(28.dp)) {
-            Text("Назад")
-        }
-        Column(modifier = Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
+    val safePadding = WindowInsets.safeDrawing.asPaddingValues()
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(safePadding)
+    ) {
+        Column(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .padding(4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Button(
+                onClick = onBack,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Text("←")
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
             Text(text = "Открытых дел: ${openCases.value}")
             Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = { /* закрыть дело с подтверждением */ }) { Text("Закрыть дело") }
+            Button(onClick = { /* закрыть дело */ }) { Text("Закрыть дело") }
         }
     }
-
 }
 
 @Preview(device = WearDevices.SMALL_ROUND, showSystemUi = true)

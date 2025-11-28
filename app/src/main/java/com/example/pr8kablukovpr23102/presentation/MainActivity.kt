@@ -47,6 +47,16 @@ import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.TimeText
 import androidx.wear.tooling.preview.devices.WearDevices
+import android.os.SystemClock
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.*
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
+import androidx.wear.compose.material.Button
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.asPaddingValues
 import com.example.pr8kablukovpr23102.R
 import kotlinx.coroutines.launch
 
@@ -232,35 +242,124 @@ fun ClickerScreen(onBack: () -> Unit) {
 
 @Composable
 fun StopwatchScreen(onBack: () -> Unit) {
+    // safe area для круглого экрана
     val safePadding = WindowInsets.safeDrawing.asPaddingValues()
+
+    // состояние секундомера
+    var elapsedMillis by remember { mutableStateOf(0L) }      // текущее прошедшее время
+    var isRunning by remember { mutableStateOf(false) }       // идёт ли таймер
+    var startBase by remember { mutableStateOf(0L) }         // базовое время SystemClock при старте
+    var showControls by remember { mutableStateOf(false) }   // показывать ли кнопки
+
+    // Логика обновления времени, пока isRunning == true
+    LaunchedEffect(isRunning) {
+        if (isRunning) {
+            // при старте корректируем базу так, чтобы учитывать уже накопленное elapsedMillis
+            startBase = SystemClock.elapsedRealtime() - elapsedMillis
+            while (isRunning) {
+                elapsedMillis = SystemClock.elapsedRealtime() - startBase
+                delay(100L) // обновляем каждые 100 мс
+            }
+        }
+    }
+
+    // Форматирование в HH:MM:SS
+    fun formatTime(ms: Long): String {
+        val totalSeconds = ms / 1000
+        val hours = totalSeconds / 3600
+        val minutes = (totalSeconds % 3600) / 60
+        val seconds = totalSeconds % 60
+        return String.format("%02d:%02d:%02d", hours, minutes, seconds)
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(safePadding)
+            .padding(safePadding), // гарантируем видимую область на круглых часах
+        contentAlignment = Alignment.Center
     ) {
         Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .align(Alignment.Center)
-                .padding(4.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(4.dp)
         ) {
+            // Маленькая кнопка назад вверху центрального блока (если нужна)
             Button(
                 onClick = onBack,
-                modifier = Modifier.size(36.dp)
+                modifier = Modifier
+                    .size(36.dp)
             ) {
                 Text("←")
             }
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            Text(text = "00:00:00")
+            // Таймер: кликабельный — по клику показываем/скрываем контролы
+            Text(
+                text = formatTime(elapsedMillis),
+                modifier = Modifier
+                    .padding(vertical = 8.dp)
+                    .clickable { showControls = !showControls }
+            )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { /* Start/Pause */ }) { Text("Start") }
-                Button(onClick = { /* Reset */ }) { Text("Reset") }
+            // Контролы: показываются только при showControls == true
+            if (showControls) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Start
+                    Button(
+                        onClick = {
+                            if (!isRunning) {
+                                // старт: isRunning -> true, LaunchedEffect установит startBase
+                                isRunning = true
+                            }
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp),
+                        shape = RoundedCornerShape(10.dp) // скруглённые прямоугольники
+                    ) {
+                        Text("Start")
+                    }
+
+                    // Pause
+                    Button(
+                        onClick = {
+                            if (isRunning) {
+                                // пауза: останавливаем обновление; elapsedMillis уже актуален
+                                isRunning = false
+                            }
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Pause")
+                    }
+
+                    // Reset
+                    Button(
+                        onClick = {
+                            isRunning = false
+                            elapsedMillis = 0L
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Reset")
+                    }
+                }
             }
         }
     }
